@@ -1,0 +1,41 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.dockndevai/mcp-ios",
+  "description": "Drive a physical iPhone/iPad over Appium + WebDriverAgent (XCUITest) for AI agents — governed, safe-by-default.",
+  "version": "0.1.0",
+  "repository": {
+    "url": "https://github.com/dockndevai/mcp-ios",
+    "source": "github"
+  },
+  "packages": [
+    {
+      "registryType": "npm",
+      "registryBaseUrl": "https://registry.npmjs.org",
+      "identifier": "@dockndevai/mcp-ios",
+      "version": "0.1.0",
+      "transport": {
+        "type": "stdio"
+      },
+      "environmentVariables": [
+        {
+          "name": "IOS_APPIUM_URL",
+          "description": "Base URL of the running Appium server (default http://127.0.0.1:4723).",
+          "isRequired": false,
+          "isSecret": false
+        },
+        {
+          "name": "IOS_UDID",
+          "description": "Target device UDID.",
+          "isRequired": false,
+          "isSecret": false
+        },
+        {
+          "name": "IOS_MODE",
+          "description": "Access mode: read-only | read-write | admin.",
+          "isRequired": false,
+          "isSecret": false
+        }
+      ]
+    }
+  ]
+}
