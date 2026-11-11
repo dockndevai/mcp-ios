@@ -5,10 +5,18 @@ import { jsonResult, textResult } from "./types.js";
 /**
  * Admin tools: only registered in admin mode, and every one additionally
  * requires IOS_ALLOW_MANAGE=true (so they aren't even advertised otherwise).
- * The destructive ones (terminate_app, reset_app) also ask the human to confirm
- * via MCP elicitation before running.
+ * The destructive ones (install_app, terminate_app, reset_app) also ask the
+ * human to confirm via MCP elicitation before running.
  */
 const manageEnabled = (p: import("../security.js").SecurityPolicy) => p.manageEnabled;
+
+function describeInstalled(bundleId: string | undefined, installed: string | undefined): string {
+  if (!bundleId) return "unknown (bundle ID unreadable)";
+  if (installed === undefined) return "no (not currently installed: a new install)";
+  if (installed === "unreadable") return "unknown (could not query the device)";
+  if (installed.startsWith("version-unavailable")) return "yes (installed; its version could not be read: version unavailable)";
+  return `yes (currently ${installed.replace(/ #[0-9a-f]+$/, "")})`;
+}
 
 export const adminTools: ToolDef[] = [
   {
@@ -17,13 +25,32 @@ export const adminTools: ToolDef[] = [
     enabledWhen: manageEnabled,
     config: {
       title: "Install app",
-      description: "Install (or upgrade) a signed .ipa/.app from a local path. Requires admin mode AND IOS_ALLOW_MANAGE=true.",
+      description: "Install (or upgrade) a signed .ipa/.app from a local path. Requires admin mode AND IOS_ALLOW_MANAGE=true; asks the human to approve the exact bundle and device first.",
       inputSchema: { appPath: z.string().describe("Path to a signed .ipa or .app on this Mac") },
     },
-    handler: async (a, { client, policy }) => {
+    handler: async (a, { client, policy, confirm }) => {
       const { dryRun } = policy.guard({ tool: "install_app", capability: "admin", requiresManage: true });
-      const appPath = a.appPath as string;
+      const appPath = client.resolveAppPath(a.appPath as string);
       if (dryRun) return textResult(`[dry-run] Would install ${appPath}.`);
+
+      // Read-only facts for the human: what this bundle is, which device, and whether it replaces an installed app.
+      const info = await client.inspectBundle(appPath);
+      const device = await client.deviceIdentity().catch(() => undefined);
+      const installed = info.bundleId ? await client.appVersion(info.bundleId).catch(() => "unreadable") : undefined;
+      const ok = await confirm.confirm({
+        action: "install app",
+        target: appPath,
+        details: {
+          "bundle path": appPath,
+          app: info.bundleId
+            ? `${info.bundleId}${info.version || info.build ? ` ${info.version ?? "?"} (${info.build ?? "?"})` : ""}`
+            : `(bundle ID could not be read from this ${info.kind === "ipa" ? ".ipa" : "bundle"})`,
+          device: device ?? "unavailable",
+          "replaces the installed app": describeInstalled(info.bundleId, installed),
+        },
+        probe: () => client.bundleVersion(appPath),
+      });
+      if (!ok.approved) return textResult(`Cancelled: install_app was ${ok.reason}.`);
       await client.installApp(appPath);
       return jsonResult({ installed: appPath });
     },

@@ -20,6 +20,14 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   JSON Schema are cosmetic and do not change what a tool accepts: zod 4 no longer emits
   `additionalProperties: false` (unknown keys are still stripped) and adds safe-integer bounds to integer
   fields.
+- **`install_app` now asks the human to approve.** It was the only destructive tool with no
+  confirmation (just admin mode + `IOS_ALLOW_MANAGE`), unlike `terminate_app`/`reset_app` here and
+  `install_apk` in `mcp-android`. The prompt shows the bundle path, the bundle ID/version/build read from the
+  `.ipa`/`.app`, the device and whether it replaces an installed app; the file's size, mtime and inode and the
+  device are pinned across the prompt, `IOS_DRY_RUN` returns before it, and `IOS_REQUIRE_HUMAN_APPROVAL=true`
+  refuses without a human. `install_app` also now installs only a local path: it is made absolute (so the path shown is
+  the path installed, not one Appium resolves against its own working directory) and a URL is refused (Appium's
+  `app` argument can be a URL; the approval is about a local file).
 - Known, not fixed: `npm audit --omit=dev` still reports one moderate `minimatch` advisory
   (GHSA-g3hv-75wg-m249) through `webdriverio` -> `archiver@8` -> `readdir-glob@3`. `archiver` is only used by
   `webdriverio`'s `installExtension` (zipping a browser extension), which this server never calls; it is

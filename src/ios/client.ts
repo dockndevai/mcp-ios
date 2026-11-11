@@ -10,7 +10,10 @@
  */
 import { execFile } from "node:child_process";
 import { createHash } from "node:crypto";
+import { stat } from "node:fs/promises";
+import { resolve } from "node:path";
 import type { IosConnection } from "../config.js";
+import { inspectBundle, type BundleInfo } from "./bundle.js";
 
 export class IosError extends Error {
   constructor(message: string) {
@@ -279,6 +282,47 @@ export class IosClient {
   }
 
   // --- Admin (manage-gated) --------------------------------------------------
+
+  /**
+   * Resolve an `install_app` argument to the absolute path of a local .ipa/.app that exists. Appium's
+   * `app` capability would also accept (and download) a URL, and would resolve a relative path against
+   * ITS working directory, neither of which is what the human is shown, so both are refused here.
+   */
+  resolveAppPath(appPath: string): string {
+    if (/^[A-Za-z][A-Za-z0-9+.-]*:\/\//.test(appPath)) {
+      throw new IosError("install_app only installs a local .ipa or .app path on this computer, not a URL.");
+    }
+    return resolve(appPath);
+  }
+
+  /** What is at `absPath` (bundle ID / version / build), for the approval prompt. Throws if it does not exist. */
+  async inspectBundle(absPath: string): Promise<BundleInfo> {
+    try {
+      return await inspectBundle(absPath);
+    } catch (err) {
+      if ((err as NodeJS.ErrnoException).code === "ENOENT") throw new IosError(`App bundle not found: ${absPath}`);
+      throw err;
+    }
+  }
+
+  /**
+   * Version token for the bundle on this computer: size + mtime + inode of the .ipa file (or .app
+   * directory), plus a short hash of the device identity (an app approved for one phone is not approved
+   * for another). For a `.app` directory these describe the directory entry itself: a file rewritten
+   * in place inside it, with the directory untouched, is not detected (same for an .ipa replaced with
+   * the same size, mtime and inode).
+   */
+  async bundleVersion(absPath: string): Promise<string | undefined> {
+    let s: Awaited<ReturnType<typeof stat>>;
+    try {
+      s = await stat(absPath);
+    } catch (err) {
+      if ((err as NodeJS.ErrnoException).code === "ENOENT") return undefined;
+      throw err;
+    }
+    const digest = createHash("sha256").update(await this.deviceIdentity()).digest("hex").slice(0, 8);
+    return `${s.size}B mtime=${Math.trunc(s.mtimeMs)} ino=${s.ino} #${digest}`;
+  }
 
   async installApp(appPath: string): Promise<void> {
     const d = await this.session();
