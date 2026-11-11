@@ -25,6 +25,12 @@ export interface SecurityConfig {
   requireHumanApproval: boolean;
 }
 
+/** Bundle ids are case-insensitive on iOS (com.Apple.MobileSafari is Safari), so list membership must be too. */
+const inList = (list: string[], bundleId: string): boolean => {
+  const id = bundleId.trim().toLowerCase();
+  return list.some((entry) => entry.trim().toLowerCase() === id);
+};
+
 export class PolicyError extends Error {
   constructor(message: string) {
     super(message);
@@ -64,10 +70,10 @@ export class SecurityPolicy {
   }
   isAppAllowed(bundleId: string): boolean {
     if (this.config.appAllowlist.length === 0) return true;
-    return this.config.appAllowlist.includes(bundleId);
+    return inList(this.config.appAllowlist, bundleId);
   }
   isAppProtected(bundleId: string): boolean {
-    return this.config.protectedApps.includes(bundleId);
+    return inList(this.config.protectedApps, bundleId);
   }
 
   guard(ctx: GuardContext): { dryRun: boolean } {
