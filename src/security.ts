@@ -41,6 +41,12 @@ export interface GuardContext {
   destructive?: boolean;
   /** install_app / terminate_app / reset_app — needs allowManage in addition to admin mode. */
   requiresManage?: boolean;
+  /**
+   * The caller could not determine which app this operation targets (`bundleId` is undefined). If
+   * that matters (an allowlist is configured, or the op is destructive and apps are protected), refuse
+   * instead of skipping the app checks.
+   */
+  bundleIdRequired?: boolean;
 }
 
 export class SecurityPolicy {
@@ -70,6 +76,15 @@ export class SecurityPolicy {
       throw new PolicyError(
         `Operation '${ctx.tool}' requires '${ctx.capability}' access but the server runs in '${this.config.mode}' mode.`,
       );
+    }
+    if (ctx.bundleId === undefined && ctx.bundleIdRequired) {
+      const scoped = this.config.appAllowlist.length > 0 || (ctx.destructive === true && this.config.protectedApps.length > 0);
+      if (scoped) {
+        this.audit(ctx, "DENY", "target app unknown while app scope is configured");
+        throw new PolicyError(
+          `Cannot tell which app '${ctx.tool}' targets (bundle ID unreadable or unknown), and IOS_APP_ALLOWLIST / IOS_PROTECTED_APPS is configured; refused.`,
+        );
+      }
     }
     if (ctx.bundleId !== undefined) {
       if (!this.isAppAllowed(ctx.bundleId)) {

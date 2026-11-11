@@ -36,6 +36,18 @@ any other privileged automation and grant it least access.
 - **Protect critical apps.** Add bundle IDs to `IOS_PROTECTED_APPS` so they can be
   inspected/launched but never terminated, reset, or uninstalled. Use
   `IOS_APP_ALLOWLIST` to pin the entire blast radius to a known set of apps.
+  `install_app` applies both lists to the bundle ID read from the `.ipa`/`.app` itself, before the
+  approval prompt and also in dry-run; when the ID cannot be read (for example a binary plist without
+  macOS `plutil`) it is refused while an allowlist is set or, since installing replaces the app, while
+  the protected list is non-empty (the default). `open_url` and `run_shortcut` are checked against the
+  stock Apple app that handles them (e.g. Safari for http(s), `com.apple.shortcuts`); an alternative
+  default browser or mail app chosen on the device is not tracked.
+- **`open_url` only opens a short list of URL schemes.** `http`, `https`, `tel`, `mailto`, `facetime`
+  and `maps` by default, plus `IOS_EXTRA_URL_SCHEMES`. Anything else (`shortcuts:`, `prefs:`,
+  `App-Prefs:`, `itms-services:`, custom app schemes) is refused, as is a URL with control characters,
+  because iOS dispatches a URL to whichever app registered the scheme. While `IOS_APP_ALLOWLIST` is set,
+  an extra scheme is refused because its handler app is unknown. Use `run_shortcut` (which needs
+  `com.apple.shortcuts` allowlisted if an allowlist is set) to run a Shortcut.
 - **Scope at the device + Appium layer first.** The flags are defence in depth.
   The device must be physically connected and trusted, WebDriverAgent must be
   signed to it, and the Appium endpoint should be loopback/local — restrict who

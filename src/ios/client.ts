@@ -14,6 +14,7 @@ import { stat } from "node:fs/promises";
 import { resolve } from "node:path";
 import type { IosConnection } from "../config.js";
 import { inspectBundle, type BundleInfo } from "./bundle.js";
+import { assertUrlScheme, UrlSchemeError } from "./url.js";
 
 export class IosError extends Error {
   constructor(message: string) {
@@ -261,7 +262,18 @@ export class IosClient {
     await d.execute("mobile: launchApp", { bundleId });
   }
 
+  /** Throws unless the URL is single-line and its scheme is allowed (defaults + IOS_EXTRA_URL_SCHEMES). Returns the scheme. */
+  checkUrl(url: string): string {
+    try {
+      return assertUrlScheme(url, this.conn.extraUrlSchemes);
+    } catch (err) {
+      if (err instanceof UrlSchemeError) throw new IosError(err.message);
+      throw err;
+    }
+  }
+
   async openUrl(url: string): Promise<void> {
+    this.checkUrl(url);
     const d = await this.session();
     if (/^https?:\/\//i.test(url)) {
       // http(s) → open in Safari.
