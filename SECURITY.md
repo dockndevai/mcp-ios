@@ -12,18 +12,26 @@ any other privileged automation and grant it least access.
 - **Gate app management explicitly.** `install_app`, `terminate_app`, and
   `reset_app` require both `admin` mode **and** `IOS_ALLOW_MANAGE=true` — they are
   not even advertised otherwise.
-- **Interactive confirmation on destructive ops.** `terminate_app` and
-  `reset_app` ask the human to approve the exact bundle ID via MCP elicitation
-  before running. Clients without elicitation fall back to the
+- **Interactive confirmation on destructive ops.** `install_app`, `terminate_app` and
+  `reset_app` ask the human to approve the exact action via MCP elicitation
+  before running. For `install_app` the prompt shows the absolute path of the `.ipa`/`.app`, the
+  bundle ID, version and build read from it, the device (UDID + iOS version), and whether it replaces
+  an installed app (and which version); with `IOS_DRY_RUN` nothing is asked or read from the device.
+  `install_app` installs only a local path (a relative path is made absolute first, and a URL is
+  refused, so what is approved is what Appium installs). Clients without elicitation fall back to the
   `IOS_ALLOW_MANAGE` gate — never *more* permissive.
 - **Require a human for destructive ops.** Set `IOS_REQUIRE_HUMAN_APPROVAL=true` so
-  `terminate_app` and `reset_app` are refused when the client cannot show an approval prompt.
+  `install_app`, `terminate_app` and `reset_app` are refused when the client cannot show an approval prompt.
   Each approval is bound to the exact tool and arguments (fingerprint) and to a version token read
   before the prompt and again after the answer; if it changed, the action is refused. The token is
   the app's CFBundleShortVersionString + CFBundleVersion (from `mobile: listApps`) plus the device
   UDID and iOS version; if the WebDriverAgent build cannot list apps, only the device is pinned. It
   does not cover the app's running state or data, and a reinstall of the same version is not
-  detected. A prompt nobody answers is a refusal. Approval receipts are written to the audit log
+  detected. For `install_app` the token is the `.ipa` file's (or `.app` directory's) size, mtime and
+  inode plus the device; for a `.app` directory that is the directory entry itself, so a file rewritten
+  in place inside the bundle without touching the directory is not detected. The bundle ID/version
+  shown come from the bundle's `Info.plist`; binary plists are only readable on macOS (`plutil`), and
+  when they cannot be read the prompt says so instead of guessing. A prompt nobody answers is a refusal. Approval receipts are written to the audit log
   (`"audit":"approval"`, with `approvedBy` = `human` or `flag-only`).
 - **Protect critical apps.** Add bundle IDs to `IOS_PROTECTED_APPS` so they can be
   inspected/launched but never terminated, reset, or uninstalled. Use
