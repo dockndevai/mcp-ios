@@ -11,11 +11,17 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   60 s request timeout, and a timeout fell through to "approved" (the `IOS_ALLOW_MANAGE` gate had
   already passed). A prompt nobody answered therefore auto-approved a destructive operation. A timeout
   is now a refusal, and the wait defaults to 5 minutes.
-- Dependencies: `@modelcontextprotocol/sdk` 1.32.1 -> 1.32.2, `webdriverio` 10.0.2 -> 10.2.0 and
-  `npm audit fix` clear the `body-parser`, `fast-uri`, `qs`, `undici` and `glob` advisories in the
-  production tree. `npm audit --omit=dev` still reports `zod` (3.x line; the only fix is `zod@4`) and a
-  `minimatch` advisory reached through `webdriverio` -> `archiver` -> `readdir-glob` (still present in the
-  latest `webdriverio` 10.2.0); both would need a major version change and are not part of this release.
+- Dependencies: `@modelcontextprotocol/sdk` 1.32.1 -> 1.32.2, `webdriverio` 10.0.2 -> 10.2.0, `npm audit fix`
+  and `zod` 3 -> 4 (4.6.7) clear the `body-parser`, `fast-uri`, `qs`, `undici`, `glob` and high `zod`
+  advisories in the production tree (the `zod` one had no 3.x fix). No tool schema changed: a new test
+  (`test/schemas.test.ts`) pins every tool's advertised input schema. The only differences in the generated
+  JSON Schema are cosmetic and do not change what a tool accepts: zod 4 no longer emits
+  `additionalProperties: false` (unknown keys are still stripped) and adds safe-integer bounds to integer
+  fields.
+- Known, not fixed: `npm audit --omit=dev` still reports one moderate `minimatch` advisory
+  (GHSA-g3hv-75wg-m249) through `webdriverio` -> `archiver@8` -> `readdir-glob@3`. `archiver` is only used by
+  `webdriverio`'s `installExtension` (zipping a browser extension), which this server never calls; it is
+  not reachable from any tool. npm's only offered fix is a downgrade to `webdriverio@9`, which was not taken.
 
 ### Added
 - **Approvals are bound to the exact action.** The prompt shows the tool, the full (secret-redacted)

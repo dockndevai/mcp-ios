@@ -1,0 +1,181 @@
+{
+  "current_app": {
+    "properties": {},
+    "type": "object"
+  },
+  "device_info": {
+    "properties": {},
+    "type": "object"
+  },
+  "input_text": {
+    "properties": {
+      "text": {
+        "description": "Text to type into the focused element",
+        "type": "string"
+      }
+    },
+    "required": [
+      "text"
+    ],
+    "type": "object"
+  },
+  "install_app": {
+    "properties": {
+      "appPath": {
+        "description": "Path to a signed .ipa or .app on this Mac",
+        "type": "string"
+      }
+    },
+    "required": [
+      "appPath"
+    ],
+    "type": "object"
+  },
+  "launch_app": {
+    "properties": {
+      "bundleId": {
+        "description": "App bundle ID",
+        "type": "string"
+      }
+    },
+    "required": [
+      "bundleId"
+    ],
+    "type": "object"
+  },
+  "list_apps": {
+    "properties": {},
+    "type": "object"
+  },
+  "list_targets": {
+    "properties": {},
+    "type": "object"
+  },
+  "open_url": {
+    "properties": {
+      "url": {
+        "description": "URL or deep link to open",
+        "type": "string"
+      }
+    },
+    "required": [
+      "url"
+    ],
+    "type": "object"
+  },
+  "page_source": {
+    "properties": {},
+    "type": "object"
+  },
+  "press_button": {
+    "properties": {
+      "button": {
+        "description": "Hardware button",
+        "enum": [
+          "home",
+          "volumeup",
+          "volumedown"
+        ],
+        "type": "string"
+      }
+    },
+    "required": [
+      "button"
+    ],
+    "type": "object"
+  },
+  "reset_app": {
+    "properties": {
+      "bundleId": {
+        "description": "App bundle ID",
+        "type": "string"
+      }
+    },
+    "required": [
+      "bundleId"
+    ],
+    "type": "object"
+  },
+  "run_shortcut": {
+    "properties": {
+      "input": {
+        "description": "Optional text input passed to the Shortcut",
+        "type": "string"
+      },
+      "name": {
+        "description": "Shortcut name exactly as it appears in the Shortcuts app",
+        "type": "string"
+      }
+    },
+    "required": [
+      "name"
+    ],
+    "type": "object"
+  },
+  "screenshot": {
+    "properties": {},
+    "type": "object"
+  },
+  "swipe": {
+    "properties": {
+      "durationMs": {
+        "description": "Gesture duration in ms (default 300)",
+        "maximum": 5000,
+        "minimum": 50,
+        "type": "integer"
+      },
+      "x1": {
+        "description": "Start X",
+        "type": "integer"
+      },
+      "x2": {
+        "description": "End X",
+        "type": "integer"
+      },
+      "y1": {
+        "description": "Start Y",
+        "type": "integer"
+      },
+      "y2": {
+        "description": "End Y",
+        "type": "integer"
+      }
+    },
+    "required": [
+      "x1",
+      "y1",
+      "x2",
+      "y2"
+    ],
+    "type": "object"
+  },
+  "tap": {
+    "properties": {
+      "x": {
+        "description": "X coordinate",
+        "type": "integer"
+      },
+      "y": {
+        "description": "Y coordinate",
+        "type": "integer"
+      }
+    },
+    "required": [
+      "x",
+      "y"
+    ],
+    "type": "object"
+  },
+  "terminate_app": {
+    "properties": {
+      "bundleId": {
+        "description": "App bundle ID",
+        "type": "string"
+      }
+    },
+    "required": [
+      "bundleId"
+    ],
+    "type": "object"
+  }
+}
