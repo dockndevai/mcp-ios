@@ -42,7 +42,8 @@ The server creates the XCUITest session **lazily** on the first tool call, so it
 | Which apps are in scope? | `IOS_APP_ALLOWLIST` | *(all)* | When set, launching/managing any other bundle ID is refused. |
 | Which apps are read-only forever? | `IOS_PROTECTED_APPS` | `com.apple.Preferences`, `com.apple.springboard` | Inspectable/launchable but never terminated, reset, or uninstalled. |
 | Can it install/terminate/reset apps? | `IOS_ALLOW_MANAGE` | `false` | The admin tools need this **and** admin mode; otherwise they aren't even advertised. |
-| Interactive confirmation | *(automatic)* | — | `terminate_app` and `reset_app` prompt the human to approve the exact bundle ID via MCP elicitation before running; clients without elicitation fall back to the `IOS_ALLOW_MANAGE` gate. |
+| Interactive confirmation | *(automatic)* | — | `terminate_app` and `reset_app` prompt the human to approve via MCP elicitation before running. The prompt shows the tool, the exact arguments and a fingerprint; the app's installed version (and the device) is pinned across the prompt and the action is refused if it changed; a prompt nobody answers is a refusal. |
+| Require a human | `IOS_REQUIRE_HUMAN_APPROVAL` | `false` | When `true`, `terminate_app` / `reset_app` are **refused** if the client cannot elicit (instead of falling back to the `IOS_ALLOW_MANAGE` gate alone). |
 | Preview without touching the device | `IOS_DRY_RUN` | `false` | Write/admin tools validate + log intent, then return. |
 | Audit trail | `IOS_AUDIT_LOG` | `true` | Emits a JSON line to stderr per guarded operation. |
 
@@ -55,6 +56,8 @@ Connection: `IOS_APPIUM_URL` (default `http://127.0.0.1:4723`), `IOS_UDID` (targ
 **Write** (`read-write`+): `tap`, `swipe`, `input_text`, `press_button` (home/volume), `launch_app`, `open_url`, `run_shortcut` (via Shortcuts)
 
 **Admin** (`admin` + `IOS_ALLOW_MANAGE`): `install_app`, `terminate_app`, `reset_app` (the last two confirm via elicitation; protected apps refused)
+
+Every tool also advertises MCP **tool annotations** (`readOnlyHint`, `destructiveHint`, `idempotentHint`, `openWorldHint`) so hosts can decide what to auto-approve.
 
 `screenshot` returns an MCP image content block so the agent can see the screen before acting.
 

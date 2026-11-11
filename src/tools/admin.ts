@@ -49,7 +49,11 @@ export const adminTools: ToolDef[] = [
         requiresManage: true,
       });
       if (dryRun) return textResult(`[dry-run] Would terminate ${bundleId}.`);
-      const ok = await confirm.confirm({ action: "terminate app", target: bundleId });
+      const ok = await confirm.confirm({
+        action: "terminate app",
+        target: bundleId,
+        probe: () => client.appVersion(bundleId),
+      });
       if (!ok.approved) return textResult(`Termination cancelled — ${ok.reason}.`);
       return jsonResult({ terminated: bundleId, result: await client.terminateApp(bundleId) });
     },
@@ -75,7 +79,11 @@ export const adminTools: ToolDef[] = [
         requiresManage: true,
       });
       if (dryRun) return textResult(`[dry-run] Would reset ${bundleId}.`);
-      const ok = await confirm.confirm({ action: "reset app", target: bundleId });
+      const ok = await confirm.confirm({
+        action: "reset app",
+        target: bundleId,
+        probe: () => client.appVersion(bundleId),
+      });
       if (!ok.approved) return textResult(`Reset cancelled — ${ok.reason}.`);
       await client.resetApp(bundleId);
       return jsonResult({ reset: bundleId });

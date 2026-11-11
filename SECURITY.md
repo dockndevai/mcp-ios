@@ -16,6 +16,15 @@ any other privileged automation and grant it least access.
   `reset_app` ask the human to approve the exact bundle ID via MCP elicitation
   before running. Clients without elicitation fall back to the
   `IOS_ALLOW_MANAGE` gate — never *more* permissive.
+- **Require a human for destructive ops.** Set `IOS_REQUIRE_HUMAN_APPROVAL=true` so
+  `terminate_app` and `reset_app` are refused when the client cannot show an approval prompt.
+  Each approval is bound to the exact tool and arguments (fingerprint) and to a version token read
+  before the prompt and again after the answer; if it changed, the action is refused. The token is
+  the app's CFBundleShortVersionString + CFBundleVersion (from `mobile: listApps`) plus the device
+  UDID and iOS version; if the WebDriverAgent build cannot list apps, only the device is pinned. It
+  does not cover the app's running state or data, and a reinstall of the same version is not
+  detected. A prompt nobody answers is a refusal. Approval receipts are written to the audit log
+  (`"audit":"approval"`, with `approvedBy` = `human` or `flag-only`).
 - **Protect critical apps.** Add bundle IDs to `IOS_PROTECTED_APPS` so they can be
   inspected/launched but never terminated, reset, or uninstalled. Use
   `IOS_APP_ALLOWLIST` to pin the entire blast radius to a known set of apps.

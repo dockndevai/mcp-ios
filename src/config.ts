@@ -55,6 +55,7 @@ export function loadConfig(): AppConfig {
       allowManage: bool("IOS_ALLOW_MANAGE", false),
       dryRun: bool("IOS_DRY_RUN", false),
       auditLog: bool("IOS_AUDIT_LOG", true),
+      requireHumanApproval: bool("IOS_REQUIRE_HUMAN_APPROVAL", false),
     },
   };
 }
