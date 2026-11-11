@@ -24,6 +24,8 @@ export interface ToolDef<Shape extends ZodRawShape = ZodRawShape> {
   capability: Capability;
   /** Marks a mutating tool as destructive (data loss possible). Defaults to `capability === "admin"`. */
   destructive?: boolean;
+  /** Overrides the idempotency hint. Defaults to `true` for read tools, `false` otherwise. */
+  idempotent?: boolean;
   /** Only register this tool when the predicate holds (e.g. the manage gate). */
   enabledWhen?: (p: SecurityPolicy) => boolean;
   config: { title: string; description: string; inputSchema: Shape };

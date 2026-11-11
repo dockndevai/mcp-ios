@@ -9,6 +9,7 @@
  * the "can't reach Appium" failure a clean, actionable error instead of a crash.
  */
 import { execFile } from "node:child_process";
+import { createHash } from "node:crypto";
 import type { IosConnection } from "../config.js";
 
 export class IosError extends Error {
@@ -171,6 +172,55 @@ export class IosClient {
         note: "This WebDriverAgent build does not expose 'mobile: listApps'. Launch apps by bundle ID (e.g. com.apple.mobilesafari) with launch_app, or read the foreground app with current_app.",
       };
     }
+  }
+
+  // --- Version tokens (pinned across an approval prompt) ------------------------
+
+  /**
+   * Which device and OS this client is driving: UDID + `platformVersion` as reported by the Appium
+   * session. Catches "a different phone was attached while the prompt was open". It does not change
+   * with app activity; only a different device or an OS update changes it.
+   */
+  async deviceIdentity(): Promise<string> {
+    const d = await this.session();
+    const caps = d.capabilities ?? {};
+    const pick = (k: string): string => {
+      const v = caps[k] ?? caps[`appium:${k}`];
+      return typeof v === "string" ? v : "";
+    };
+    const udid = pick("udid") || this.conn.udid || "default";
+    return `${udid}|${pick("platformVersion") || "?"}`;
+  }
+
+  /**
+   * Version token for an installed app: CFBundleShortVersionString + CFBundleVersion from
+   * `mobile: listApps` (user apps, then system apps), plus a short hash of the device identity.
+   * `undefined` if the bundle ID is not installed. If this WebDriverAgent build (or a Simulator)
+   * cannot list apps, the token degrades to the device identity alone and says so — the app's
+   * version is then not pinned. Limits: a reinstall of the SAME version is not detected, and the
+   * app's running state and data are deliberately not part of the token (they change constantly).
+   */
+  async appVersion(bundleId: string): Promise<string | undefined> {
+    const d = await this.session();
+    const digest = createHash("sha256").update(await this.deviceIdentity()).digest("hex").slice(0, 8);
+    for (const applicationType of ["User", "System"]) {
+      let apps: Record<string, Record<string, unknown>>;
+      try {
+        apps = (await d.execute("mobile: listApps", {
+          applicationType,
+          returnAttributes: ["CFBundleIdentifier", "CFBundleShortVersionString", "CFBundleVersion"],
+        })) as Record<string, Record<string, unknown>>;
+      } catch {
+        return `version-unavailable #${digest}`;
+      }
+      const app = apps?.[bundleId];
+      if (app) {
+        const short = typeof app.CFBundleShortVersionString === "string" ? app.CFBundleShortVersionString : "?";
+        const build = typeof app.CFBundleVersion === "string" ? app.CFBundleVersion : "?";
+        return `${short} (${build}) #${digest}`;
+      }
+    }
+    return undefined;
   }
 
   // --- Writes (UI control) ---------------------------------------------------

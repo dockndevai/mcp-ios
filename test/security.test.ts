@@ -9,6 +9,7 @@ function makePolicy(o: Partial<SecurityConfig> = {}): SecurityPolicy {
     allowManage: false,
     dryRun: false,
     auditLog: false,
+    requireHumanApproval: false,
     ...o,
   });
 }
