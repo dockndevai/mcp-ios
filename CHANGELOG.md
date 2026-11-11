@@ -28,6 +28,21 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   refuses without a human. `install_app` also now installs only a local path: it is made absolute (so the path shown is
   the path installed, not one Appium resolves against its own working directory) and a URL is refused (Appium's
   `app` argument can be a URL; the approval is about a local file).
+- **`install_app` now enforces `IOS_APP_ALLOWLIST` and `IOS_PROTECTED_APPS`.** It called the policy guard
+  with no bundle ID, so neither list applied to installs. The bundle ID is now read from the `.ipa`/`.app`
+  and passed to the guard before the approval prompt (and before the dry-run return); a bundle outside the
+  allowlist, or whose ID is protected (installing replaces the app), is refused. If the ID cannot be read
+  the install is refused while an allowlist is set or the protected list is non-empty (it is by default);
+  with neither configured there is nothing to enforce and the human still approves as before. A path that
+  does not exist is now reported in dry-run as well.
+- **`open_url` has a URL-scheme allowlist.** It passed any scheme to `mobile: deepLink`, so `shortcuts://`,
+  `prefs:`/`App-Prefs:`, `itms-services://` or any custom app scheme could be opened. Only `http`, `https`,
+  `tel`, `mailto`, `facetime` and `maps` are opened by default (`IOS_EXTRA_URL_SCHEMES` adds more); other
+  schemes and URLs with control characters are refused before the dry-run branch, in the tool and in the client.
+- **`open_url` and `run_shortcut` respect `IOS_APP_ALLOWLIST`.** They launch Safari / Phone / Mail / FaceTime /
+  Maps or the Shortcuts app without going through the app scope; they are now checked against the stock app
+  for the scheme (`com.apple.shortcuts` for `run_shortcut`). With an allowlist set, an extra scheme (handler
+  unknown) is refused. An alternative default browser/mail app chosen on the device is not tracked.
 - Known, not fixed: `npm audit --omit=dev` still reports one moderate `minimatch` advisory
   (GHSA-g3hv-75wg-m249) through `webdriverio` -> `archiver@8` -> `readdir-glob@3`. `archiver` is only used by
   `webdriverio`'s `installExtension` (zipping a browser extension), which this server never calls; it is

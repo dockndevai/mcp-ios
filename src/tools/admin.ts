@@ -29,12 +29,22 @@ export const adminTools: ToolDef[] = [
       inputSchema: { appPath: z.string().describe("Path to a signed .ipa or .app on this Mac") },
     },
     handler: async (a, { client, policy, confirm }) => {
-      const { dryRun } = policy.guard({ tool: "install_app", capability: "admin", requiresManage: true });
       const appPath = client.resolveAppPath(a.appPath as string);
+      // Read the bundle ID from the file itself: it is what will actually be installed, and the only ID
+      // the app scope (IOS_APP_ALLOWLIST / IOS_PROTECTED_APPS) can be checked against. An unreadable ID is
+      // refused while a scope is configured. Installing replaces an installed app, so it counts as destructive.
+      const info = await client.inspectBundle(appPath);
+      const { dryRun } = policy.guard({
+        tool: "install_app",
+        capability: "admin",
+        bundleId: info.bundleId,
+        bundleIdRequired: true,
+        destructive: true,
+        requiresManage: true,
+      });
       if (dryRun) return textResult(`[dry-run] Would install ${appPath}.`);
 
       // Read-only facts for the human: what this bundle is, which device, and whether it replaces an installed app.
-      const info = await client.inspectBundle(appPath);
       const device = await client.deviceIdentity().catch(() => undefined);
       const installed = info.bundleId ? await client.appVersion(info.bundleId).catch(() => "unreadable") : undefined;
       const ok = await confirm.confirm({

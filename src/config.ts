@@ -2,6 +2,7 @@
  * Configuration from environment variables. The server drives a tethered
  * iPhone/iPad through a running **Appium** server (XCUITest / WebDriverAgent).
  */
+import { parseUrlSchemes } from "./ios/url.js";
 import type { AccessMode, SecurityConfig } from "./security.js";
 
 export interface IosConnection {
@@ -13,6 +14,8 @@ export interface IosConnection {
   bundleId?: string;
   /** New-command / session timeout (ms). */
   timeout: number;
+  /** URL schemes `open_url` accepts in addition to http, https, tel, mailto, facetime, maps. */
+  extraUrlSchemes?: string[];
 }
 
 export interface AppConfig {
@@ -45,6 +48,7 @@ export function loadConfig(): AppConfig {
       udid: process.env.IOS_UDID || undefined,
       bundleId: process.env.IOS_BUNDLE_ID || undefined,
       timeout: Number(process.env.IOS_TIMEOUT_MS ?? 60000),
+      extraUrlSchemes: parseUrlSchemes(list("IOS_EXTRA_URL_SCHEMES")),
     },
     security: {
       mode: parseMode(),

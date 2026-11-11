@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { ToolDef } from "./types.js";
+import { SHORTCUTS_BUNDLE_ID, stockHandlerFor } from "../ios/url.js";
 import { jsonResult, textResult } from "./types.js";
 
 // Hardware buttons XCUITest's `mobile: pressButton` understands.
@@ -93,14 +94,23 @@ export const writeTools: ToolDef[] = [
     capability: "write",
     config: {
       title: "Open URL",
-      description: "Open a URL or deep link (http(s) opens in Safari; custom schemes route through the system handler).",
+      description:
+        "Open a URL (http(s) opens in Safari). Only http, https, tel, mailto, facetime and maps URLs by default (IOS_EXTRA_URL_SCHEMES adds more); other schemes such as shortcuts: or prefs: are refused.",
       inputSchema: { url: z.string().describe("URL or deep link to open") },
     },
     handler: async (a, { client, policy }) => {
-      const { dryRun } = policy.guard({ tool: "open_url", capability: "write" });
-      if (dryRun) return textResult(`[dry-run] Would open ${a.url}.`);
-      await client.openUrl(a.url as string);
-      return jsonResult({ opened: a.url });
+      const url = a.url as string;
+      // Scheme check first, so a dry-run never reports a refused URL as "would open".
+      const scheme = client.checkUrl(url);
+      const { dryRun } = policy.guard({
+        tool: "open_url",
+        capability: "write",
+        bundleId: stockHandlerFor(scheme),
+        bundleIdRequired: true,
+      });
+      if (dryRun) return textResult(`[dry-run] Would open ${url}.`);
+      await client.openUrl(url);
+      return jsonResult({ opened: url });
     },
   },
   {
@@ -116,7 +126,8 @@ export const writeTools: ToolDef[] = [
       },
     },
     handler: async (a, { client, policy }) => {
-      const { dryRun } = policy.guard({ tool: "run_shortcut", capability: "write" });
+      // Drives the Shortcuts app, so IOS_APP_ALLOWLIST applies to it like any other launched app.
+      const { dryRun } = policy.guard({ tool: "run_shortcut", capability: "write", bundleId: SHORTCUTS_BUNDLE_ID });
       const name = a.name as string;
       if (dryRun) return textResult(`[dry-run] Would run Shortcut '${name}'.`);
       await client.runShortcut(name, a.input as string | undefined);
